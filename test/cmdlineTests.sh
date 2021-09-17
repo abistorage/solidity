@@ -345,12 +345,18 @@ printTask "Running general commandline tests..."
 
         printTask " - ${tdir}"
 
+        if [[ $(ls -A "$tdir") == "" ]]
+        then
+            printWarning "   ---> skipped (test dir empty)"
+            continue
+        fi
+
         # Strip trailing slash from $tdir.
         tdir=$(basename "${tdir}")
         if [[ $no_smt == true ]]
         then
             if [[ $tdir =~ .*model_checker_.* ]]; then
-                printWarning "  --- > skipped"
+                printWarning "   ---> skipped (SMT test)"
                 continue
             fi
         fi
