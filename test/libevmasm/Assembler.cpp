@@ -165,6 +165,39 @@ BOOST_AUTO_TEST_CASE(all_assembly_items)
 	);
 }
 
+// TODO(pr)
+// - 1 immutable 1/2/3 occurrences
+// - 2 immutables 1/2/3 occurrences
+BOOST_AUTO_TEST_CASE(immutables_and_its_source_maps) // TODO(pr) sufficient?
+{
+	auto assemblyName = make_shared<string>("root.asm");
+	auto ctorName = make_shared<string>("ctor.asm");
+
+	map<string, unsigned> indices = {
+		{ *assemblyName, 0 },
+		{ *ctorName, 1 }
+	};
+
+	Assembly ctorAsm;
+	ctorAsm.setSourceLocation(SourceLocation{4, 6, ctorName});
+	ctorAsm.appendImmutable("a");
+
+	Assembly assembly;
+	assembly.setSourceLocation({1, 3, assemblyName});
+	assembly.append(u256(0x40)); // immutable value
+	assembly.append(u256(0));    // target
+	assembly.appendImmutableAssignment("a");
+	assembly.append(u256(0x41));
+	assembly.append(u256(0));
+	assembly.appendImmutableAssignment("someImmutable");
+	AssemblyItem ctor = assembly.appendSubroutine(make_shared<Assembly>(ctorAsm));
+	assembly.pushSubroutineOffset(static_cast<size_t>(ctor.data()));
+	checkCompilation(assembly);
+	LinkerObject const& obj = assembly.assemble();
+	std::cout << "bytecode: " << obj.toHex() << endl;
+	BOOST_CHECK_EQUAL(obj.immutableReferences.size(), 3);
+}
+
 BOOST_AUTO_TEST_CASE(immutable)
 {
 	map<string, unsigned> indices = {

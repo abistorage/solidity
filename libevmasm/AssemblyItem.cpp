@@ -86,8 +86,11 @@ size_t AssemblyItem::bytesRequired(size_t _addressLength) const
 		return 1 + 32;
 	case AssignImmutable:
 		if (m_immutableOccurrences)
+			// TODO(pr): ensure this calculation is still correct (maybe have a test for that?)
 			return 1 + (3 + 32) * *m_immutableOccurrences;
 		else
+			// TODO(pr): Should that not be zero then?
+			// What sense does a AssignImmutable Item make when there are no immutable references?
 			return 1 + (3 + 32) * 1024; // 1024 occurrences are beyond the maximum code size anyways.
 	case VerbatimBytecode:
 		return std::get<2>(*m_verbatimBytecode).size();
@@ -332,6 +335,7 @@ std::string AssemblyItem::computeSourceMapping(
 	int prevSourceIndex = -1;
 	int prevModifierDepth = -1;
 	char prevJump = 0;
+
 	for (auto const& item: _items)
 	{
 		if (!ret.empty())

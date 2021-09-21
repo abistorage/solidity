@@ -669,9 +669,13 @@ LinkerObject const& Assembly::assemble() const
 			ret.bytecode.resize(ret.bytecode.size() + 20);
 			break;
 		case PushImmutable:
+			// NOTE: `i.data` is the keccak256("identifier") of the immutable?
 			ret.bytecode.push_back(static_cast<uint8_t>(Instruction::PUSH32));
+			// Maps keccak back to the "identifier" string of that immutable.
 			ret.immutableReferences[i.data()].first = m_immutables.at(i.data());
+			// Record the bytecode offset of the PUSH32 argument.
 			ret.immutableReferences[i.data()].second.emplace_back(ret.bytecode.size());
+			// Advance bytecode by 32 bytes (default initialized).
 			ret.bytecode.resize(ret.bytecode.size() + 32);
 			break;
 		case VerbatimBytecode:
@@ -679,19 +683,22 @@ LinkerObject const& Assembly::assemble() const
 			break;
 		case AssignImmutable:
 		{
+			// Expect 2 elements on stack (source, dest_base)
 			auto const& offsets = immutableReferencesBySub[i.data()].second;
-			for (size_t i = 0; i < offsets.size(); ++i)
+			for (size_t i = 0; i < offsets.size(); ++i) // for each bytecode offset in the sub assembly (ctor)
 			{
-				if (i != offsets.size() - 1)
-				{
+				if (i != offsets.size() - 1) // If not the last item
+				{                            // then dup the two top elements from stack.
 					ret.bytecode.push_back(uint8_t(Instruction::DUP2));
 					ret.bytecode.push_back(uint8_t(Instruction::DUP2));
 				}
 				// TODO: should we make use of the constant optimizer methods for pushing the offsets?
 				bytes offsetBytes = toCompactBigEndian(u256(offsets[i]));
+
+				// PUSH<n> <byteOffset>
 				ret.bytecode.push_back(static_cast<uint8_t>(pushInstruction(static_cast<unsigned>(offsetBytes.size()))));
 				ret.bytecode += offsetBytes;
-				ret.bytecode.push_back(uint8_t(Instruction::ADD));
+				ret.bytecode.push_back(uint8_t(Instruction::ADD)); // push(pop() + pop())
 				ret.bytecode.push_back(uint8_t(Instruction::MSTORE));
 			}
 			if (offsets.empty())
