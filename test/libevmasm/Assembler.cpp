@@ -31,6 +31,8 @@
 #include <memory>
 #include <libyul/Exceptions.h>
 
+#include <fstream>
+
 using namespace std;
 using namespace solidity::langutil;
 using namespace solidity::evmasm;
@@ -169,7 +171,8 @@ BOOST_AUTO_TEST_CASE(all_assembly_items)
 // - 1 immutable 1/2/3 occurrences
 // - 2 immutables 1/2/3 occurrences
 // THEN:
-// - Verify that all immutable asm items have a source location assigned.
+// - Verify that all immutable asm items *ALL* have a source location assigned.
+
 BOOST_AUTO_TEST_CASE(immutables_and_its_source_maps) // TODO(pr) sufficient?
 {
 	auto assemblyName = make_shared<string>("root.asm");
@@ -182,22 +185,36 @@ BOOST_AUTO_TEST_CASE(immutables_and_its_source_maps) // TODO(pr) sufficient?
 
 	auto subAsm = make_shared<Assembly>();
 	subAsm->setSourceLocation(SourceLocation{4, 6, subName});
-	subAsm->appendImmutable("a");
+	for (int i = 0; i < 3; ++i)
+		subAsm->appendImmutable("a");
 
 	Assembly assembly;
-	assembly.setSourceLocation({1, 3, assemblyName});
+	assembly.setSourceLocation({1, 2, assemblyName});
 
+	assembly.setSourceLocation({3, 4, assemblyName});
 	assembly.append(u256(0x40)); // immutable value
 	assembly.append(u256(0));    // target memory location
 	assembly.appendImmutableAssignment("a");
 
 	AssemblyItem subAsmItem = assembly.appendSubroutine(subAsm);
+	assembly.setSourceLocation({5, 6, assemblyName});
 	assembly.pushSubroutineOffset(static_cast<size_t>(subAsmItem.data()));
 
-	checkCompilation(assembly);
 	LinkerObject const& obj = assembly.assemble();
-	std::cout << "bytecode: " << obj.toHex() << endl;
-	BOOST_CHECK_EQUAL(obj.immutableReferences.size(), 3);
+
+	Json::Value asmJson = assembly.assemblyJSON(indices);
+	ofstream("out.json") << util::jsonPrettyPrint(asmJson) << '\n';
+
+	// "3:1:0:-:0;;;;5"
+	// -->
+	// 1x "3:1:0:-:0"
+	// 3x empty
+	// 1x "5" (5 = start)
+	string const sourceMappings = AssemblyItem::computeSourceMapping(assembly.items(), indices);
+	std::cout << "srcmap: " << sourceMappings << '\n';
+
+	checkCompilation(assembly);
+	BOOST_CHECK_EQUAL(obj.immutableReferences.size(), 1); // XXX Why is this 0 instead != 0
 }
 
 BOOST_AUTO_TEST_CASE(immutable)

@@ -623,7 +623,7 @@ LinkerObject const& Assembly::assemble() const
 			ret.bytecode.push_back(static_cast<uint8_t>(pushInstruction(b)));
 			ret.bytecode.resize(ret.bytecode.size() + b);
 			bytesRef byr(&ret.bytecode.back() + 1 - b, b);
-			toBigEndian(i.data(), byr);
+			toBigEndian(i.data(), byr); // writes i.data as big-endian into byr.
 			break;
 		}
 		case PushTag:
