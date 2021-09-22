@@ -170,6 +170,7 @@ public:
 	size_t m_modifierDepth = 0;
 
 	void setImmutableOccurrences(size_t _n) const { m_immutableOccurrences = std::make_shared<size_t>(_n); }
+	size_t immutableOccurences()const noexcept { return m_immutableOccurrences ? *m_immutableOccurrences : 0; }
 
 private:
 	AssemblyItemType m_type;

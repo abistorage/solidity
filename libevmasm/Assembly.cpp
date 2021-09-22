@@ -596,7 +596,7 @@ LinkerObject const& Assembly::assemble() const
 	multimap<size_t, size_t> subRef;
 	vector<unsigned> sizeRef; ///< Pointers to code locations where the size of the program is inserted
 	unsigned bytesPerTag = util::bytesRequired(bytesRequiredForCode);
-	uint8_t tagPush = static_cast<uint8_t>(pushInstruction(bytesPerTag));
+	uint8_t tagPush = static_cast<uint8_t>(pushInstruction(bytesPerTag)); // XXX That's the one  creating that PUSH <n> right before the INVALID instr.
 
 	unsigned bytesRequiredIncludingData = bytesRequiredForCode + 1 + static_cast<unsigned>(m_auxiliaryData.size());
 	for (auto const& sub: m_subs)
@@ -644,7 +644,7 @@ LinkerObject const& Assembly::assemble() const
 			subRef.insert(make_pair(static_cast<size_t>(i.data()), ret.bytecode.size()));
 			ret.bytecode.resize(ret.bytecode.size() + bytesPerDataRef);
 			break;
-		case PushSubSize:
+		case PushSubSize: // XXX This is added right before INVALID?
 		{
 			assertThrow(i.data() <= numeric_limits<size_t>::max(), AssemblyException, "");
 			auto s = subAssemblyById(static_cast<size_t>(i.data()))->assemble().bytecode.size();
@@ -693,12 +693,11 @@ LinkerObject const& Assembly::assemble() const
 					ret.bytecode.push_back(uint8_t(Instruction::DUP2));
 				}
 				// TODO: should we make use of the constant optimizer methods for pushing the offsets?
-				bytes offsetBytes = toCompactBigEndian(u256(offsets[i]));
-
 				// PUSH<n> <byteOffset>
+				bytes offsetBytes = toCompactBigEndian(u256(offsets[i]));
 				ret.bytecode.push_back(static_cast<uint8_t>(pushInstruction(static_cast<unsigned>(offsetBytes.size()))));
 				ret.bytecode += offsetBytes;
-				ret.bytecode.push_back(uint8_t(Instruction::ADD)); // push(pop() + pop())
+				ret.bytecode.push_back(uint8_t(Instruction::ADD));
 				ret.bytecode.push_back(uint8_t(Instruction::MSTORE));
 			}
 			if (offsets.empty())

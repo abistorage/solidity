@@ -404,6 +404,9 @@ std::string AssemblyItem::computeSourceMapping(
 			}
 		}
 
+		// Append empty items if this AssignImmutable was referenced more than once.
+		ret += string(max(1ul, item.immutableOccurences()) - 1, ';');
+
 		prevStart = location.start;
 		prevLength = length;
 		prevSourceIndex = sourceIndex;

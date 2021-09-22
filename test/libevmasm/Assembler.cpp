@@ -31,8 +31,6 @@
 #include <memory>
 #include <libyul/Exceptions.h>
 
-#include <fstream>
-
 using namespace std;
 using namespace solidity::langutil;
 using namespace solidity::evmasm;
@@ -171,7 +169,8 @@ BOOST_AUTO_TEST_CASE(all_assembly_items)
 // - 1 immutable 1/2/3 occurrences
 // - 2 immutables 1/2/3 occurrences
 // THEN:
-// - Verify that all immutable asm items *ALL* have a source location assigned.
+// - Verify that all immutable asm items *ALL*
+//   have a source location assigned.
 
 BOOST_AUTO_TEST_CASE(immutables_and_its_source_maps) // TODO(pr) sufficient?
 {
@@ -185,36 +184,57 @@ BOOST_AUTO_TEST_CASE(immutables_and_its_source_maps) // TODO(pr) sufficient?
 
 	auto subAsm = make_shared<Assembly>();
 	subAsm->setSourceLocation(SourceLocation{4, 6, subName});
-	for (int i = 0; i < 3; ++i)
-		subAsm->appendImmutable("a");
+	// subAsm->appendImmutable("a");
+	// subAsm->appendImmutable("b");
+	// subAsm->appendImmutable("c");
+	// subAsm->appendImmutable("a");
+	// subAsm->appendImmutable("a");
 
 	Assembly assembly;
-	assembly.setSourceLocation({1, 2, assemblyName});
-
 	assembly.setSourceLocation({3, 4, assemblyName});
-	assembly.append(u256(0x40)); // immutable value
-	assembly.append(u256(0));    // target memory location
-	assembly.appendImmutableAssignment("a");
+	// assembly.append(u256(0x71)); // immutble value
+	// assembly.append(u256(0));    // target memory location
+	// assembly.appendImmutableAssignment("a");
+	// assembly.append(u256(0x72)); // immutable value
+	// assembly.append(u256(0));    // target memory location
+	// assembly.appendImmutableAssignment("b");
+	// assembly.append(u256(0x73)); // immutable value
+	// assembly.append(u256(0));    // target memory location
+	// assembly.appendImmutableAssignment("c");
 
 	AssemblyItem subAsmItem = assembly.appendSubroutine(subAsm);
 	assembly.setSourceLocation({5, 6, assemblyName});
-	assembly.pushSubroutineOffset(static_cast<size_t>(subAsmItem.data()));
+	//assembly.pushSubroutineOffset(static_cast<size_t>(subAsmItem.data()));
+
+	checkCompilation(assembly);
 
 	LinkerObject const& obj = assembly.assemble();
 
-	Json::Value asmJson = assembly.assemblyJSON(indices);
-	ofstream("out.json") << util::jsonPrettyPrint(asmJson) << '\n';
-
-	// "3:1:0:-:0;;;;5"
-	// -->
-	// 1x "3:1:0:-:0"
-	// 3x empty
-	// 1x "5" (5 = start)
 	string const sourceMappings = AssemblyItem::computeSourceMapping(assembly.items(), indices);
-	std::cout << "srcmap: " << sourceMappings << '\n';
+	string const disassembly = disassemble(obj.bytecode, "\n"); // Contains sub-assembly !
+	auto const numberOfMappings = std::count(sourceMappings.begin(), sourceMappings.end(), ';');
+	auto const numberOfOpcodes = std::count(disassembly.begin(), disassembly.end(), '\n');//TODO: sub-assembly opcodes rausrechnen
 
-	checkCompilation(assembly);
-	BOOST_CHECK_EQUAL(obj.immutableReferences.size(), 1); // XXX Why is this 0 instead != 0
+	cout << "# src mappings: " << numberOfMappings << '\n';
+	cout << "# opcodes: " << numberOfOpcodes << '\n';
+	cout << "# subs: " << assembly.numSubs() << '\n';
+	cout << "srcmap: \"" << sourceMappings << "\"\n";
+	// Number of source mappings should equal to:
+	//     number of opcodes
+	//     minus number of opcodes from sub assembly
+	//     minus 1 (INVALID instruction)
+	// A single immutable-assignment generates 5 opcodes at least.
+	// such as: (PUSH x PUSH y PUSH z ADD MSTORE)
+
+	LinkerObject const& subObj = assembly.sub(0).assemble();
+	string const subDisassembly = disassemble(subObj.bytecode, "\n");
+	auto const numberOfSubOpcodes = std::count(subDisassembly.begin(), subDisassembly.end(), '\n');
+	cout << "# sub opcodes " << numberOfSubOpcodes << '\n';
+
+	cout << "main bytecode:\n\t" << disassemble(obj.bytecode, "\n\t");
+	cout << "\rsub bytecode:\n\t" << disassemble(subObj.bytecode, "\n\t");
+
+	BOOST_CHECK_EQUAL(numberOfMappings, numberOfOpcodes - 3);
 }
 
 BOOST_AUTO_TEST_CASE(immutable)
