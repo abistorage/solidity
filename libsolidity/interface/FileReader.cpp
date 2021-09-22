@@ -69,14 +69,11 @@ ReadCallback::Result FileReader::readFile(string const& _kind, string const& _so
 		if (strippedSourceUnitName.find("file://") == 0)
 			strippedSourceUnitName.erase(0, 7);
 
-		auto canonicalPath = normalizeCLIPathForVFS(
-			m_basePath / strippedSourceUnitName,
-			true /* resolveSymlinks */
-		);
+		auto canonicalPath = normalizeCLIPathForVFS(m_basePath / strippedSourceUnitName, SymlinkResolution::Enabled);
 
 		bool isAllowed = false;
 		for (boost::filesystem::path const& allowedDir: m_allowedDirectories)
-			if (isPathPrefix(normalizeCLIPathForVFS(allowedDir, true), canonicalPath))
+			if (isPathPrefix(normalizeCLIPathForVFS(allowedDir, SymlinkResolution::Enabled), canonicalPath))
 			{
 				isAllowed = true;
 				break;
