@@ -36,11 +36,13 @@ using namespace solidity::test;
 namespace solidity::frontend::test
 {
 
+using SymlinkResolution = FileReader::SymlinkResolution;
+
 BOOST_AUTO_TEST_SUITE(FileReaderTest)
 
 BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_absolute_path)
 {
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		BOOST_CHECK_EQUAL(FileReader::normalizeCLIPathForVFS("/", resolveSymlinks), "/");
 		BOOST_CHECK_EQUAL(FileReader::normalizeCLIPathForVFS("/.", resolveSymlinks), "/");
@@ -78,7 +80,7 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_relative_path)
 	expectedPrefix = "/" / expectedPrefix.relative_path();
 	soltestAssert(expectedPrefix.is_absolute() || expectedPrefix.root_path() == "/", "");
 
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		BOOST_CHECK_EQUAL(FileReader::normalizeCLIPathForVFS(".", resolveSymlinks), expectedPrefix / "x/y/z/");
 		BOOST_CHECK_EQUAL(FileReader::normalizeCLIPathForVFS("./", resolveSymlinks), expectedPrefix / "x/y/z/");
@@ -121,7 +123,7 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_relative_path)
 
 BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_redundant_slashes)
 {
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		BOOST_CHECK_EQUAL(FileReader::normalizeCLIPathForVFS("///", resolveSymlinks), "/");
 		BOOST_CHECK_EQUAL(FileReader::normalizeCLIPathForVFS("////", resolveSymlinks), "/");
@@ -143,7 +145,7 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_unc_path)
 	boost::filesystem::path expectedWorkDir = "/" / boost::filesystem::current_path().relative_path();
 	soltestAssert(expectedWorkDir.is_absolute() || expectedWorkDir.root_path() == "/", "");
 
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		// UNC paths start with // or \\ followed by a name. They are used for network shares on Windows.
 		// On UNIX systems they are not supported but still treated in a special way.
@@ -179,7 +181,7 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_root_name_only)
 	// C:\ represents the root directory of drive C: but C: on its own refers to the current working
 	// directory.
 
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		// UNC paths
 		BOOST_CHECK_EQUAL(FileReader::normalizeCLIPathForVFS("//", resolveSymlinks), "//" / expectedWorkDir);
@@ -208,7 +210,7 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_stripping_root_name)
 	soltestAssert(!boost::filesystem::current_path().root_name().empty(), "");
 #endif
 
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		boost::filesystem::path normalizedPath = FileReader::normalizeCLIPathForVFS(
 			boost::filesystem::current_path(),
@@ -224,7 +226,7 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_path_beyond_root)
 {
 	TemporaryWorkingDirectory tempWorkDir("/");
 
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		BOOST_CHECK_EQUAL(FileReader::normalizeCLIPathForVFS("/..", resolveSymlinks), "/");
 		BOOST_CHECK_EQUAL(FileReader::normalizeCLIPathForVFS("/../", resolveSymlinks), "/");
@@ -262,7 +264,7 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_case_sensitivity)
 	boost::filesystem::path workDirNoSymlinks = boost::filesystem::weakly_canonical(tempDir);
 	boost::filesystem::path expectedPrefix = "/" / workDirNoSymlinks.relative_path();
 
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		BOOST_TEST(FileReader::normalizeCLIPathForVFS(workDirNoSymlinks / "abc", resolveSymlinks) == expectedPrefix / "abc");
 		BOOST_TEST(FileReader::normalizeCLIPathForVFS(workDirNoSymlinks / "abc", resolveSymlinks) != expectedPrefix / "ABC");
@@ -273,7 +275,7 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_case_sensitivity)
 
 BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_path_separators)
 {
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		// Even on Windows we want / as a separator.
 		BOOST_TEST((
@@ -295,20 +297,20 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_should_not_resolve_symlinks_unless_r
 	boost::filesystem::path expectedPrefixWithoutSymlinks = "/" / boost::filesystem::weakly_canonical(tempDir).relative_path();
 
 	BOOST_CHECK_EQUAL(
-		FileReader::normalizeCLIPathForVFS(tempDir.path() / "sym/contract.sol", false),
+		FileReader::normalizeCLIPathForVFS(tempDir.path() / "sym/contract.sol", SymlinkResolution::Disabled),
 		expectedPrefixWithSymlinks / "sym/contract.sol"
 	);
 	BOOST_CHECK_EQUAL(
-		FileReader::normalizeCLIPathForVFS(tempDir.path() / "abc/contract.sol", false),
+		FileReader::normalizeCLIPathForVFS(tempDir.path() / "abc/contract.sol", SymlinkResolution::Disabled),
 		expectedPrefixWithSymlinks / "abc/contract.sol"
 	);
 
 	BOOST_CHECK_EQUAL(
-		FileReader::normalizeCLIPathForVFS(tempDir.path() / "sym/contract.sol", true),
+		FileReader::normalizeCLIPathForVFS(tempDir.path() / "sym/contract.sol", SymlinkResolution::Enabled),
 		expectedPrefixWithoutSymlinks / "abc/contract.sol"
 	);
 	BOOST_CHECK_EQUAL(
-		FileReader::normalizeCLIPathForVFS(tempDir.path() / "abc/contract.sol", true),
+		FileReader::normalizeCLIPathForVFS(tempDir.path() / "abc/contract.sol", SymlinkResolution::Enabled),
 		expectedPrefixWithoutSymlinks / "abc/contract.sol"
 	);
 }
@@ -328,7 +330,7 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_should_resolve_symlinks_in_workdir_w
 	boost::filesystem::path expectedPrefix = "/" / tempDir.path().relative_path();
 	soltestAssert(expectedPrefix.is_absolute() || expectedPrefix.root_path() == "/", "");
 
-	for (bool resolveSymlinks: {false, true})
+	for (SymlinkResolution resolveSymlinks: {SymlinkResolution::Enabled, SymlinkResolution::Disabled})
 	{
 		BOOST_CHECK_EQUAL(
 			FileReader::normalizeCLIPathForVFS("contract.sol", resolveSymlinks),
@@ -337,20 +339,20 @@ BOOST_AUTO_TEST_CASE(normalizeCLIPathForVFS_should_resolve_symlinks_in_workdir_w
 	}
 
 	BOOST_CHECK_EQUAL(
-		FileReader::normalizeCLIPathForVFS(tempDir.path() / "sym/contract.sol", false),
+		FileReader::normalizeCLIPathForVFS(tempDir.path() / "sym/contract.sol", SymlinkResolution::Disabled),
 		expectedPrefix / "sym/contract.sol"
 	);
 	BOOST_CHECK_EQUAL(
-		FileReader::normalizeCLIPathForVFS(tempDir.path() / "abc/contract.sol", false),
+		FileReader::normalizeCLIPathForVFS(tempDir.path() / "abc/contract.sol", SymlinkResolution::Disabled),
 		expectedPrefix / "abc/contract.sol"
 	);
 
 	BOOST_CHECK_EQUAL(
-		FileReader::normalizeCLIPathForVFS(tempDir.path() / "sym/contract.sol", true),
+		FileReader::normalizeCLIPathForVFS(tempDir.path() / "sym/contract.sol", SymlinkResolution::Enabled),
 		expectedWorkDir / "contract.sol"
 	);
 	BOOST_CHECK_EQUAL(
-		FileReader::normalizeCLIPathForVFS(tempDir.path() / "abc/contract.sol", true),
+		FileReader::normalizeCLIPathForVFS(tempDir.path() / "abc/contract.sol", SymlinkResolution::Enabled),
 		expectedWorkDir / "contract.sol"
 	);
 }

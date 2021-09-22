@@ -113,7 +113,7 @@ ReadCallback::Result FileReader::readFile(string const& _kind, string const& _so
 
 boost::filesystem::path FileReader::normalizeCLIPathForVFS(
 	boost::filesystem::path const& _path,
-	bool _resolveSymlinks
+	SymlinkResolution _symlinkResolution
 )
 {
 	// Detailed normalization rules:
@@ -144,7 +144,7 @@ boost::filesystem::path FileReader::normalizeCLIPathForVFS(
 	boost::filesystem::path absolutePath = boost::filesystem::absolute(_path, canonicalWorkDir);
 
 	boost::filesystem::path normalizedPath;
-	if (_resolveSymlinks)
+	if (_symlinkResolution == SymlinkResolution::Enabled)
 	{
 		// NOTE: weakly_canonical() will not convert a relative path into an absolute one if no
 		// directory included in the path actually exists.
@@ -157,9 +157,13 @@ boost::filesystem::path FileReader::normalizeCLIPathForVFS(
 			normalizedPath = normalizedPath.parent_path() / (normalizedPath.filename().string() + "/");
 	}
 	else
+	{
+		solAssert(_symlinkResolution == SymlinkResolution::Disabled, "");
+
 		// NOTE: boost path preserves certain differences that are ignored by its operator ==.
 		// E.g. "a//b" vs "a/b" or "a/b/" vs "a/b/.". lexically_normal() does remove these differences.
 		normalizedPath = absolutePath.lexically_normal();
+	}
 	solAssert(normalizedPath.is_absolute() || normalizedPath.root_path() == "/", "");
 
 	// If the path is on the same drive as the working dir, for portability we prefer not to

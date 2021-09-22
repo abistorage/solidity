@@ -39,6 +39,11 @@ public:
 	using PathMap = std::map<SourceUnitName, boost::filesystem::path>;
 	using FileSystemPathSet = std::set<boost::filesystem::path>;
 
+	enum SymlinkResolution {
+		Disabled, ///< Do not resolve symbolic links in the path.
+		Enabled,  ///< Follow symbolic links. The path should contain no symlinks.
+	};
+
 	/// Constructs a FileReader with a base path and a set of allowed directories that
 	/// will be used when requesting files from this file reader instance.
 	explicit FileReader(
@@ -95,10 +100,10 @@ public:
 	/// has no redundant . or .. segments and has no root name if removing it does not change the meaning.
 	/// The path does not have to actually exist.
 	/// @param _path Path to normalize.
-	/// @param _resolveSymlinks If false, any symlinks present in @a _path are preserved.
+	/// @param _symlinkResolution If @a Disabled, any symlinks present in @a _path are preserved.
 	static boost::filesystem::path normalizeCLIPathForVFS(
 		boost::filesystem::path const& _path,
-		bool _resolveSymlinks = false
+		SymlinkResolution _symlinkResolution = SymlinkResolution::Disabled
 	);
 
 	/// @returns true if all the path components of @a _prefix are present at the beginning of @a _path.
