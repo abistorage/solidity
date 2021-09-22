@@ -213,7 +213,7 @@ void ReferencesResolver::operator()(yul::FunctionDefinition const& _function)
 
 void ReferencesResolver::operator()(yul::Identifier const& _identifier)
 {
-	static set<string> suffixes{"slot", "offset", "length"};
+	static set<string> suffixes{"slot", "offset", "length", "address", "selector"};
 	string suffix;
 	for (string const& s: suffixes)
 		if (boost::algorithm::ends_with(_identifier.name.str(), "." + s))
@@ -229,6 +229,7 @@ void ReferencesResolver::operator()(yul::Identifier const& _identifier)
 			return;
 		string realName = _identifier.name.str().substr(0, _identifier.name.str().size() - suffix.size() - 1);
 		solAssert(!realName.empty(), "Empty name.");
+		// TODO use same function for local variables (for address/selector)?
 		declarations = m_resolver.nameFromCurrentScope(realName);
 		if (!declarations.empty())
 			// To support proper path resolution, we have to use pathFromCurrentScope.
