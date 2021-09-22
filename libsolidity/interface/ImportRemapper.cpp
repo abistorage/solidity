@@ -79,12 +79,12 @@ SourceUnitName ImportRemapper::apply(ImportPath const& _path, string const& _con
 	return path;
 }
 
-bool ImportRemapper::isRemapping(string_view const& _input)
+bool ImportRemapper::isRemapping(string_view _input)
 {
 	return _input.find("=") != string::npos;
 }
 
-optional<ImportRemapper::Remapping> ImportRemapper::parseRemapping(string_view const& _input)
+optional<ImportRemapper::Remapping> ImportRemapper::parseRemapping(string_view _input)
 {
 	auto equals = find(_input.begin(), _input.end(), '=');
 	if (equals == _input.end())
