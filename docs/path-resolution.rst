@@ -403,7 +403,7 @@ The option accepts a comma-separated list of paths:
     solc token/contract.sol \
         lib/util.sol=libs/util.sol \
         --base-path=token/ \
-        --allow-paths=../utils/,/usr/libraries
+        --allow-paths=../utils/,/tmp/libraries
 
 When the compiler is invoked with the command shown above, the Host Filesystem Loader will allow
 importing files from the following directories:
@@ -412,7 +412,7 @@ importing files from the following directories:
   the base path),
 - ``/home/user/project/libs/`` (because ``libs/`` is a directory containing a remapping target),
 - ``/home/user/utils/`` (because of ``../utils/`` passed to ``--allow-paths``),
-- ``/usr/libraries/`` (because of ``/usr/libraries`` passed to ``--allow-paths``),
+- ``/tmp/libraries/`` (because of ``/tmp/libraries`` passed to ``--allow-paths``),
 
 .. note::
 
