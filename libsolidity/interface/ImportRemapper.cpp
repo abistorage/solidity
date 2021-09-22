@@ -86,16 +86,16 @@ bool ImportRemapper::isRemapping(string_view _input)
 
 optional<ImportRemapper::Remapping> ImportRemapper::parseRemapping(string_view _input)
 {
-	auto equals = find(_input.begin(), _input.end(), '=');
+	auto equals = find(_input.cbegin(), _input.cend(), '=');
 	if (equals == _input.end())
 		return nullopt;
 
-	auto colon = find(_input.begin(), equals, ':');
+	auto const colon = find(_input.cbegin(), equals, ':');
 
 	Remapping remapping{
-		(colon == equals ? "" : string(_input.begin(), colon)),
-		(colon == equals ? string(_input.begin(), equals) : string(colon + 1, equals)),
-		string(equals + 1, _input.end()),
+		(colon == equals ? "" : string(_input.cbegin(), colon)),
+		(colon == equals ? string(_input.cbegin(), equals) : string(colon + 1, equals)),
+		string(equals + 1, _input.cend()),
 	};
 
 	if (remapping.prefix.empty())

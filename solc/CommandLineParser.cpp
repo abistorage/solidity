@@ -338,7 +338,7 @@ bool CommandLineParser::parseInputPathsAndRemappings()
 	m_options.input.ignoreMissingFiles = (m_args.count(g_strIgnoreMissingFiles) > 0);
 
 	if (m_args.count(g_strInputFile))
-		for (string positionalArg: m_args[g_strInputFile].as<vector<string>>())
+		for (string const& positionalArg: m_args[g_strInputFile].as<vector<string>>())
 		{
 			if (ImportRemapper::isRemapping(positionalArg))
 			{
@@ -356,7 +356,7 @@ bool CommandLineParser::parseInputPathsAndRemappings()
 					return false;
 				}
 
-				auto remappingDir = boost::filesystem::path(remapping->target);
+				boost::filesystem::path remappingDir = remapping->target;
 				remappingDir.remove_filename();
 				m_options.input.allowedDirectories.insert(remappingDir);
 
